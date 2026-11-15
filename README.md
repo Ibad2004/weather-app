@@ -1,8 +1,8 @@
-# Weather app
+﻿# Weather app
 
 Search for a city and see the current weather and a 5-day forecast. Built with React, TypeScript and Vite for Week 3.
 
-Live demo: (added after deploy)
+Live demo: https://weather-app-gilt-psi-38.vercel.app/
 
 ## Run it
 
