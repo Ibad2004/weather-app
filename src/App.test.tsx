@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react'
+﻿import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import axe from 'axe-core'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
@@ -256,7 +256,9 @@ describe('forecast', () => {
     expect(screen.getByText('Humidity 71%')).toBeInTheDocument()
     expect(screen.getByText('Wind 18 km/h')).toBeInTheDocument()
     expect(screen.getAllByText('Rain').length).toBeGreaterThan(0)
-    const items = screen.getAllByRole('listitem')
+    const items = within(
+      screen.getByRole('list', { name: '5-day forecast' }),
+    ).getAllByRole('listitem')
     expect(items).toHaveLength(5)
     expect(items[0]).toHaveTextContent('Today')
     expect(items[1]).toHaveTextContent('Tue 18 Nov')
@@ -456,6 +458,138 @@ describe('accessibility (axe)', () => {
     routes({ Tokyo: [tokyo] })
     render(<App />)
     await search('Tokyo')
+    await find.role('heading', { name: 'Tokyo, Japan' })
+    await expectNoViolations()
+  })
+})
+
+describe('unit toggle', () => {
+  const pressed = (name: string) =>
+    screen.getByRole('button', { name }).getAttribute('aria-pressed')
+
+  it('has two aria-pressed buttons and defaults to Celsius', () => {
+    routes({})
+    render(<App />)
+    expect(pressed('\u00B0C')).toBe('true')
+    expect(pressed('\u00B0F')).toBe('false')
+  })
+
+  it('remembers the choice after a reload', () => {
+    routes({})
+    const first = render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: '\u00B0F' }))
+    expect(localStorage.getItem('weather:unit')).toBe('F')
+    first.unmount()
+    render(<App />)
+    expect(pressed('\u00B0F')).toBe('true')
+    expect(pressed('\u00B0C')).toBe('false')
+  })
+
+  it.each(['banana', '', '"F"', '{"unit":"F"}'])(
+    'falls back to Celsius for the saved value %j',
+    (saved) => {
+      localStorage.setItem('weather:unit', saved)
+      routes({})
+      render(<App />)
+      expect(pressed('\u00B0C')).toBe('true')
+    },
+  )
+})
+
+describe('recent searches', () => {
+  const recentButtons = () =>
+    within(screen.getByRole('region', { name: 'Recent searches' }))
+      .getAllByRole('button')
+      .map((b) => b.textContent)
+
+  it('saves searched places newest first', async () => {
+    routes({ Tokyo: [tokyo], London: [london] })
+    render(<App />)
+    await search('Tokyo')
+    await find.role('heading', { name: 'Tokyo, Japan' })
+    await search('London')
+    await find.role('heading', { name: 'London, England, United Kingdom' })
+    expect(recentButtons()).toEqual([
+      'London, England, United Kingdom',
+      'Tokyo, Japan',
+      'Clear recent searches',
+    ])
+    const saved: unknown = JSON.parse(
+      localStorage.getItem('weather:recent') ?? '',
+    )
+    expect(Array.isArray(saved) && saved.length).toBe(2)
+  })
+
+  it('shows the most recent city on reload without a geocoding request', async () => {
+    localStorage.setItem('weather:recent', JSON.stringify([tokyo, london]))
+    const fetchMock = routes({})
+    render(<App />)
+    await find.role('heading', { name: 'Tokyo, Japan' })
+    expect(searchCalls(fetchMock)).toHaveLength(0)
+  })
+
+  it('loads a clicked recent place straight away', async () => {
+    localStorage.setItem('weather:recent', JSON.stringify([tokyo, london]))
+    const fetchMock = routes({})
+    render(<App />)
+    await find.role('heading', { name: 'Tokyo, Japan' })
+    fireEvent.click(
+      screen.getByRole('button', { name: 'London, England, United Kingdom' }),
+    )
+    await find.role('heading', { name: 'London, England, United Kingdom' })
+    expect(searchCalls(fetchMock)).toHaveLength(0)
+  })
+
+  it('clears the list and the saved value', async () => {
+    localStorage.setItem('weather:recent', JSON.stringify([tokyo]))
+    routes({})
+    render(<App />)
+    await find.role('heading', { name: 'Tokyo, Japan' })
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Clear recent searches' }),
+    )
+    expect(screen.queryByRole('region', { name: 'Recent searches' })).toBeNull()
+    expect(localStorage.getItem('weather:recent')).toBe('[]')
+  })
+
+  it('skips broken JSON and bad items without crashing', async () => {
+    localStorage.setItem('weather:recent', '{not json')
+    routes({})
+    const first = render(<App />)
+    expect(screen.queryByRole('region', { name: 'Recent searches' })).toBeNull()
+    first.unmount()
+    localStorage.setItem(
+      'weather:recent',
+      JSON.stringify([42, null, { name: 'Bad' }, london]),
+    )
+    render(<App />)
+    await find.role('heading', { name: 'London, England, United Kingdom' })
+  })
+
+  it('keeps working in memory when storage is blocked', async () => {
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('blocked')
+    })
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('full')
+    })
+    routes({ Tokyo: [tokyo] })
+    render(<App />)
+    await search('Tokyo')
+    await find.role('heading', { name: 'Tokyo, Japan' })
+    expect(recentButtons()).toContain('Tokyo, Japan')
+    fireEvent.click(screen.getByRole('button', { name: '\u00B0F' }))
+    expect(
+      screen
+        .getByRole('button', { name: '\u00B0F' })
+        .getAttribute('aria-pressed'),
+    ).toBe('true')
+  })
+
+  it('has no axe violations with recent searches and the unit buttons', async () => {
+    localStorage.setItem('weather:recent', JSON.stringify([tokyo, london]))
+    routes({})
+    render(<App />)
     await find.role('heading', { name: 'Tokyo, Japan' })
     await expectNoViolations()
   })

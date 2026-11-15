@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import {
   errorMessage,
   getForecast,
@@ -10,6 +10,15 @@ import {
 import { ForecastView } from './components/ForecastView'
 import { useDebouncedValue } from './hooks/useDebouncedValue'
 import { placeLabel, type Unit } from './format'
+import {
+  RECENT_KEY,
+  UNIT_KEY,
+  addRecent,
+  parseRecent,
+  parseUnit,
+  readStorage,
+  writeStorage,
+} from './storage'
 
 const MAX_INPUT = 100
 const MIN_QUERY = 2
@@ -28,8 +37,12 @@ type ForecastResult = { place: Place; attempt: number } & Outcome<{
 
 export default function App() {
   const [input, setInput] = useState('')
-  const [unit, setUnit] = useState<Unit>('C')
-  const [place, setPlace] = useState<Place | null>(null)
+  const [unit, setUnit] = useState<Unit>(() => parseUnit(readStorage(UNIT_KEY)))
+  const [recent, setRecent] = useState<Place[]>(() =>
+    parseRecent(readStorage(RECENT_KEY)),
+  )
+  // On a reload, show the most recent city straight away.
+  const [place, setPlace] = useState<Place | null>(() => recent[0] ?? null)
   const [search, setSearch] = useState<SearchResult | null>(null)
   const [forecast, setForecast] = useState<ForecastResult | null>(null)
   const [searchAttempt, setSearchAttempt] = useState(0)
@@ -62,6 +75,15 @@ export default function App() {
   }, [query, searchAttempt])
 
   useEffect(() => {
+    writeStorage(RECENT_KEY, JSON.stringify(recent))
+  }, [recent])
+
+  function changeUnit(next: Unit) {
+    setUnit(next)
+    writeStorage(UNIT_KEY, next)
+  }
+
+  useEffect(() => {
     if (place === null) return
     const controller = new AbortController()
     getForecast(place.latitude, place.longitude, controller.signal).then(
@@ -73,6 +95,7 @@ export default function App() {
           attempt: forecastAttempt,
           forecast: result,
         })
+        setRecent((previous) => addRecent(previous, place))
       },
       (error: unknown) => {
         if (controller.signal.aborted || isAbortError(error)) return
@@ -117,7 +140,22 @@ export default function App() {
 
   return (
     <main className="app">
-      <h1>Weather</h1>
+      <header className="top">
+        <h1>Weather</h1>
+        <div className="unit-toggle" role="group" aria-label="Temperature unit">
+          {(['C', 'F'] as const).map((u) => (
+            <button
+              key={u}
+              type="button"
+              aria-pressed={unit === u}
+              onClick={() => changeUnit(u)}
+            >
+              {'\u00B0'}
+              {u}
+            </button>
+          ))}
+        </div>
+      </header>
 
       <div className="search">
         <label htmlFor="search">Search for a city</label>
@@ -145,7 +183,7 @@ export default function App() {
         <p>No places found for "{searchView.query}". Check the spelling.</p>
       )}
       {searchView.status === 'success' && searchView.places.length > 1 && (
-        <ul className="places" aria-label="Matching places">
+        <ul className="button-list places" aria-label="Matching places">
           {searchView.places.map((candidate) => (
             <li key={candidate.id}>
               <button type="button" onClick={() => setPlace(candidate)}>
@@ -154,6 +192,24 @@ export default function App() {
             </li>
           ))}
         </ul>
+      )}
+
+      {recent.length > 0 && (
+        <section className="recent" aria-labelledby="recent-heading">
+          <h2 id="recent-heading">Recent searches</h2>
+          <ul className="button-list">
+            {recent.map((item) => (
+              <li key={item.id}>
+                <button type="button" onClick={() => setPlace(item)}>
+                  {placeLabel(item)}
+                </button>
+              </li>
+            ))}
+          </ul>
+          <button type="button" className="clear" onClick={() => setRecent([])}>
+            Clear recent searches
+          </button>
+        </section>
       )}
 
       {forecastView.status === 'loading' && <p>Loading weather…</p>}
@@ -173,7 +229,6 @@ export default function App() {
           placeName={placeLabel(forecastView.place)}
           forecast={forecastView.forecast}
           unit={unit}
-          onUnitChange={setUnit}
         />
       )}
 

@@ -1,4 +1,4 @@
-export type Place = {
+﻿export type Place = {
   id: number
   name: string
   admin1?: string
@@ -126,7 +126,7 @@ function numberArray(value: unknown): number[] | null {
   return Array.isArray(value) && value.every(isNumber) ? value : null
 }
 
-function parsePlace(value: unknown): Place | null {
+export function parsePlace(value: unknown): Place | null {
   if (!isRecord(value)) return null
   const { id, name, admin1, country, latitude, longitude } = value
   if (

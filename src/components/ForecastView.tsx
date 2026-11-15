@@ -1,37 +1,14 @@
-import type { Forecast } from '../api/weather'
+﻿import type { Forecast } from '../api/weather'
 import { dayLabel, formatTemp, type Unit } from '../format'
 import { describeWeather } from '../weatherCodes'
 
-type Props = {
-  placeName: string
-  forecast: Forecast
-  unit: Unit
-  onUnitChange: (unit: Unit) => void
-}
+type Props = { placeName: string; forecast: Forecast; unit: Unit }
 
-export function ForecastView({
-  placeName,
-  forecast,
-  unit,
-  onUnitChange,
-}: Props) {
+export function ForecastView({ placeName, forecast, unit }: Props) {
   const { current, days } = forecast
   const condition = describeWeather(current.weatherCode, current.isDay)
   return (
     <section aria-labelledby="current-heading" className="forecast">
-      <div className="unit-toggle" role="group" aria-label="Temperature unit">
-        {(['C', 'F'] as const).map((u) => (
-          <button
-            key={u}
-            type="button"
-            aria-pressed={unit === u}
-            onClick={() => onUnitChange(u)}
-          >
-            {'\u00B0'}
-            {u}
-          </button>
-        ))}
-      </div>
       <h2 id="current-heading">{placeName}</h2>
       <p className="current-temp">
         <span aria-hidden="true">{condition.emoji}</span>{' '}
@@ -43,7 +20,7 @@ export function ForecastView({
       <p>Wind {Math.round(current.windKmh)} km/h</p>
 
       <h3>5-day forecast</h3>
-      <ul className="days">
+      <ul className="days" aria-label="5-day forecast">
         {days.map((day, index) => {
           const dayCondition = describeWeather(day.weatherCode, true)
           return (
@@ -54,7 +31,7 @@ export function ForecastView({
               <span>
                 {formatTemp(day.max, unit)} / {formatTemp(day.min, unit)}
               </span>
-              <span>
+              <span className="muted">
                 Rain{' '}
                 {day.rainChance === null
                   ? '\u2013'

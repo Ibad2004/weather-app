@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+﻿import { describe, expect, it } from 'vitest'
 import { dayLabel, formatTemp, placeLabel } from './format'
 import { describeWeather } from './weatherCodes'
 
@@ -47,6 +47,12 @@ describe('formatTemp', () => {
   it('converts to Fahrenheit on screen', () => {
     expect(formatTemp(0, 'F')).toBe('32\u00B0')
     expect(formatTemp(-17.8, 'F')).toBe('0\u00B0')
+  })
+  it('converts with C x 9/5 + 32, rounded at the end', () => {
+    expect(formatTemp(0, 'F')).toBe('32\u00B0')
+    expect(formatTemp(-40, 'F')).toBe('-40\u00B0')
+    expect(formatTemp(37.5, 'F')).toBe('100\u00B0')
+    expect(formatTemp(-0.4, 'C')).toBe('0\u00B0')
   })
 })
 
