@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react'
+﻿import { useEffect, useRef, useState } from 'react'
 import {
   errorMessage,
   getForecast,
@@ -48,6 +48,7 @@ export default function App() {
   const [searchAttempt, setSearchAttempt] = useState(0)
   const [forecastAttempt, setForecastAttempt] = useState(0)
 
+  const inputRef = useRef<HTMLInputElement>(null)
   const trimmed = input.trim()
   const query = useDebouncedValue(trimmed, DEBOUNCE_MS)
   const tooShort = trimmed.length < MIN_QUERY
@@ -77,6 +78,12 @@ export default function App() {
   useEffect(() => {
     writeStorage(RECENT_KEY, JSON.stringify(recent))
   }, [recent])
+
+  function pickPlace(candidate: Place) {
+    setPlace(candidate)
+    // The clicked button is about to disappear: keep focus in the search box.
+    inputRef.current?.focus()
+  }
 
   function changeUnit(next: Unit) {
     setUnit(next)
@@ -161,6 +168,7 @@ export default function App() {
         <label htmlFor="search">Search for a city</label>
         <input
           id="search"
+          ref={inputRef}
           type="search"
           value={input}
           maxLength={MAX_INPUT}
@@ -182,17 +190,19 @@ export default function App() {
       {searchView.status === 'success' && searchView.places.length === 0 && (
         <p>No places found for "{searchView.query}". Check the spelling.</p>
       )}
-      {searchView.status === 'success' && searchView.places.length > 1 && (
-        <ul className="button-list places" aria-label="Matching places">
-          {searchView.places.map((candidate) => (
-            <li key={candidate.id}>
-              <button type="button" onClick={() => setPlace(candidate)}>
-                {placeLabel(candidate)}
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
+      {searchView.status === 'success' &&
+        searchView.places.length > 1 &&
+        (place === null || !searchView.places.includes(place)) && (
+          <ul className="button-list places" aria-label="Matching places">
+            {searchView.places.map((candidate) => (
+              <li key={candidate.id}>
+                <button type="button" onClick={() => pickPlace(candidate)}>
+                  {placeLabel(candidate)}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
 
       {recent.length > 0 && (
         <section className="recent" aria-labelledby="recent-heading">

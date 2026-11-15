@@ -214,6 +214,20 @@ describe('search results', () => {
     ).toBeInTheDocument()
   })
 
+  it('hides the places list after picking one and shows it again for a new search', async () => {
+    routes({ Lon: [london, paris], Par: [paris, london] })
+    render(<App />)
+    await search('Lon')
+    fireEvent.click(await find.role('button', { name: /^London/ }))
+    await find.role('heading', { name: /London/ })
+    expect(screen.queryByRole('list', { name: 'Matching places' })).toBeNull()
+    expect(screen.getByLabelText('Search for a city')).toHaveFocus()
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Weather for London, England, United Kingdom loaded',
+    )
+    await search('Par')
+    await find.role('list', { name: 'Matching places' })
+  })
   it('aborts a stale search and ignores its answer', async () => {
     let firstSignal: AbortSignal | null | undefined
     const slow = gate()
@@ -296,9 +310,9 @@ describe('forecast', () => {
           jsonResponse(forecastJson({ current: { temperature_2m: 30 } })),
       },
     )
+    // London (slow) loads on mount; Paris is picked from the recent list meanwhile.
+    localStorage.setItem('weather:recent', JSON.stringify([london, paris]))
     render(<App />)
-    await search('Lon')
-    fireEvent.click(await find.role('button', { name: /^London/ }))
     fireEvent.click(screen.getByRole('button', { name: /^Paris/ }))
     expect(await find.role('heading', { name: /Paris/ })).toBeInTheDocument()
     slow.release()
