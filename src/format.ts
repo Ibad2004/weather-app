@@ -1,10 +1,10 @@
 export type Unit = 'C' | 'F'
 
-/** Rounds for display; never returns "-0�". */
+/** Rounds for display; never returns "-0\u00B0". */
 export function formatTemp(celsius: number, unit: Unit = 'C'): string {
   const value = unit === 'F' ? (celsius * 9) / 5 + 32 : celsius
   const rounded = Math.round(value)
-  return `${rounded === 0 ? 0 : rounded}�`
+  return `${rounded === 0 ? 0 : rounded}\u00B0`
 }
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']

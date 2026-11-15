@@ -4,18 +4,18 @@ import { describeWeather } from './weatherCodes'
 
 describe('describeWeather', () => {
   it.each([
-    [0, true, 'Clear sky', '??'],
-    [0, false, 'Clear sky', '??'],
-    [2, true, 'Cloudy', '?'],
-    [45, true, 'Fog', '???'],
-    [53, true, 'Drizzle', '???'],
-    [65, true, 'Rain', '???'],
-    [73, true, 'Snow', '??'],
-    [81, true, 'Rain showers', '???'],
-    [86, true, 'Snow showers', '???'],
-    [96, true, 'Thunderstorm', '??'],
-    [999, true, 'Unknown', '?'],
-    [58, true, 'Unknown', '?'],
+    [0, true, 'Clear sky', '\u2600\uFE0F'],
+    [0, false, 'Clear sky', '\u{1F319}'],
+    [2, true, 'Cloudy', '\u26C5'],
+    [45, true, 'Fog', '\u{1F32B}\uFE0F'],
+    [53, true, 'Drizzle', '\u{1F326}\uFE0F'],
+    [65, true, 'Rain', '\u{1F327}\uFE0F'],
+    [73, true, 'Snow', '\u2744\uFE0F'],
+    [81, true, 'Rain showers', '\u{1F326}\uFE0F'],
+    [86, true, 'Snow showers', '\u{1F328}\uFE0F'],
+    [96, true, 'Thunderstorm', '\u26C8\uFE0F'],
+    [999, true, 'Unknown', '\u2753'],
+    [58, true, 'Unknown', '\u2753'],
   ])('code %i (day=%s) ? %s', (code, isDay, description, emoji) => {
     expect(describeWeather(code, isDay)).toEqual({ description, emoji })
   })
@@ -38,15 +38,15 @@ describe('dayLabel', () => {
 })
 
 describe('formatTemp', () => {
-  it('rounds', () => expect(formatTemp(14.6)).toBe('15�'))
-  it('never shows -0�', () => {
-    expect(formatTemp(-0.2)).toBe('0�')
-    expect(formatTemp(-0)).toBe('0�')
+  it('rounds', () => expect(formatTemp(14.6)).toBe('15\u00B0'))
+  it('never shows -0\u00B0', () => {
+    expect(formatTemp(-0.2)).toBe('0\u00B0')
+    expect(formatTemp(-0)).toBe('0\u00B0')
   })
-  it('keeps real negatives', () => expect(formatTemp(-3.4)).toBe('-3�'))
+  it('keeps real negatives', () => expect(formatTemp(-3.4)).toBe('-3\u00B0'))
   it('converts to Fahrenheit on screen', () => {
-    expect(formatTemp(0, 'F')).toBe('32�')
-    expect(formatTemp(-17.8, 'F')).toBe('0�')
+    expect(formatTemp(0, 'F')).toBe('32\u00B0')
+    expect(formatTemp(-17.8, 'F')).toBe('0\u00B0')
   })
 })
 

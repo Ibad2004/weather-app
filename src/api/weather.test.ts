@@ -13,12 +13,12 @@ const signal = () => new AbortController().signal
 describe('searchPlaces', () => {
   it('builds the URL with encoded params and returns places', async () => {
     const fetchMock = mockFetch(async () => jsonResponse({ results: [london] }))
-    const places = await searchPlaces('S�o Paulo & co', signal())
+    const places = await searchPlaces('S\u00E3o Paulo & co', signal())
     const url = new URL(String(fetchMock.mock.calls[0]?.[0]))
     expect(url.origin + url.pathname).toBe(
       'https://geocoding-api.open-meteo.com/v1/search',
     )
-    expect(url.searchParams.get('name')).toBe('S�o Paulo & co')
+    expect(url.searchParams.get('name')).toBe('S\u00E3o Paulo & co')
     expect(url.searchParams.get('count')).toBe('5')
     expect(places).toEqual([{ ...london }])
   })
@@ -37,7 +37,7 @@ describe('searchPlaces', () => {
 })
 
 describe('getForecast', () => {
-  it('requests �C, timezone=auto and 5 days', async () => {
+  it('requests \u00B0C, timezone=auto and 5 days', async () => {
     const fetchMock = mockFetch(async () => jsonResponse(forecastJson()))
     const forecast = await getForecast(51.5, -0.12, signal())
     const url = new URL(String(fetchMock.mock.calls[0]?.[0]))
